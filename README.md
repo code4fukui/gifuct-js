@@ -1,6 +1,6 @@
 # gifuct-js
 
-A Simple to use javascript .GIF decoder.
+A Simple to use JavaScript .GIF decoder.
 
 We needed to be able to efficiently load and manipulate GIF files for the **[Ruffle][1]** hybrid app (for mobiles). There are a couple of example libraries out there like [jsgif][2] & its derivative [libgif-js][3], however these are admittedly inefficient, and a mess. After pulling our hair out trying to understand the ancient, mystic gif format (hence the project name), we decided to just roll our own. This library also removes any specific drawing code, and simply parses, and decompresses gif files so that you can manipulate and display them however you like. We do include `imageData` patch construction though to get you most of the way there.
 
@@ -10,49 +10,17 @@ You can see a demo of this library in action **[here][4]**
 
 ### Usage
 
-_Installation:_
-
-```
-npm install gifuct-js
-```
-
 _Decoding:_
 
 This decoder uses **[js-binary-schema-parser][5]** to parse the gif files (you can examine the schema in the source). This means the gif file must firstly be converted into a `Uint8Array` buffer in order to decode it. Some examples:
 
-- _fetch_
-
 ```js
-import { parseGIF, decompressFrames } from 'gifuct-js'
+import { parseGIF, decompressFrames } from 'https://code4fukui.github.io/gifuct-js/src/index.js';
 
-var promisedGif = fetch(gifURL)
-     .then(resp => resp.arrayBuffer())
-     .then(buff => {
-         var gif = parseGIF(buff)
-         var frames = decompressFrames(gif, true)
-         return gif;
-     });
-```
-
-- _XMLHttpRequest_
-
-```js
-import { parseGIF, decompressFrames } from 'gifuct-js'
-
-var oReq = new XMLHttpRequest();
-oReq.open("GET", gifURL, true);
-oReq.responseType = "arraybuffer";
-
-oReq.onload = function (oEvent) {
-    var arrayBuffer = oReq.response; // Note: not oReq.responseText
-    if (arrayBuffer) {
-        var gif = parseGIF(arrayBuffer);
-        var frames = decompressFrames(gif, true);
-        // do something with the frame data
-    }
-};
-
-oReq.send(null);
+const buff = await (await fetch(gifURL)).arrayBuffer();
+const gif = parseGIF(buff);
+const frames = decompressFrames(gif, true)
+console.log(frames);
 ```
 
 _Result:_
