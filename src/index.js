@@ -1,8 +1,8 @@
-import GIF from 'js-binary-schema-parser/lib/schemas/gif'
-import { parse } from 'js-binary-schema-parser'
-import { buildStream } from 'js-binary-schema-parser/lib/parsers/uint8'
-import { deinterlace } from './deinterlace'
-import { lzw } from './lzw'
+import GIF from 'https://code4fukui.github.io/jsBinarySchemaParser/src/schemas/gif.js'
+import { parse } from 'https://code4fukui.github.io/jsBinarySchemaParser/src/index.js'
+import { buildStream } from 'https://code4fukui.github.io/jsBinarySchemaParser/src/parsers/uint8.js'
+import { deinterlace } from './deinterlace.js'
+import { lzw } from './lzw.js'
 
 export const parseGIF = arrayBuffer => {
   const byteData = new Uint8Array(arrayBuffer)

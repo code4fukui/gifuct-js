@@ -1,4 +1,4 @@
-import { parseGIF, decompressFrames } from '../lib/index.js'
+import { parseGIF, decompressFrames } from '../src/index.js'
 
 // user canvas
 var c = document.getElementById('c')
@@ -8,7 +8,7 @@ var tempCanvas = document.createElement('canvas')
 var tempCtx = tempCanvas.getContext('2d')
 // full gif canvas
 var gifCanvas = document.createElement('canvas')
-var gifCtx = gifCanvas.getContext('2d')
+var gifCtx = gifCanvas.getContext('2d', { willReadFrequently: true });
 
 var url = document.getElementById('url')
 // default gif
