@@ -6,7 +6,7 @@ We needed to be able to efficiently load and manipulate GIF files for the **[Ruf
 
 ### Demo
 
-You can see a demo of this library in action **[here][4]**
+You can see a demo of this library in action [hero](https://code4fukui.github.io/gifuct-js/) or **[here][4]**
 
 ### Usage
 
