@@ -12,7 +12,7 @@ var gifCtx = gifCanvas.getContext('2d', { willReadFrequently: true });
 
 var url = document.getElementById('url')
 // default gif
-url.value = '/demo/horses.gif'
+url.value = './horses.gif'
 
 document.getElementById('loadGIF').onclick = loadGIF
 document.getElementById('playpause').onclick = playpause
