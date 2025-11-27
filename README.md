@@ -8,6 +8,8 @@ We needed to be able to efficiently load and manipulate GIF files for the **[Ruf
 
 You can see a demo of this library in action [hero](https://code4fukui.github.io/gifuct-js/) or **[here][4]**
 
+[a01-kanta.gif](demo/a01-anta.gif) is from [](https://github.com/code4fukui/lessergo-puyo/) / 鯖江市役所西山動物園オープンデータ
+
 ### Usage
 
 _Decoding:_

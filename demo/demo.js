@@ -12,7 +12,8 @@ var gifCtx = gifCanvas.getContext('2d', { willReadFrequently: true });
 
 var url = document.getElementById('url')
 // default gif
-url.value = './horses.gif'
+//url.value = './horses.gif'
+url.value = './a01-kanta.gif'
 
 document.getElementById('loadGIF').onclick = loadGIF
 document.getElementById('playpause').onclick = playpause
