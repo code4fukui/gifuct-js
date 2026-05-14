@@ -1,96 +1,133 @@
 # gifuct-js
 
-A Simple to use JavaScript .GIF decoder.
+> 日本語のREADMEはこちらです: [README.ja.md](README.ja.md)
 
-We needed to be able to efficiently load and manipulate GIF files for the **[Ruffle][1]** hybrid app (for mobiles). There are a couple of example libraries out there like [jsgif][2] & its derivative [libgif-js][3], however these are admittedly inefficient, and a mess. After pulling our hair out trying to understand the ancient, mystic gif format (hence the project name), we decided to just roll our own. This library also removes any specific drawing code, and simply parses, and decompresses gif files so that you can manipulate and display them however you like. We do include `imageData` patch construction though to get you most of the way there.
+A simple JavaScript GIF decoder for parsing and rendering GIF files in browsers or Deno environments.
 
-### Demo
+## Demo
 
-You can see a demo of this library in action [hero](https://code4fukui.github.io/gifuct-js/) or **[here][4]**
+See the library in action: [Live Demo](https://code4fukui.github.io/gifuct-js/)
 
-[a01-kanta.gif](demo/a01-anta.gif) is from [](https://github.com/code4fukui/lessergo-puyo/) / 鯖江市役所西山動物園オープンデータ
+*The example GIF [a01-kanta.gif](https://code4fukui.github.io/gifuct-js/demo/a01-kanta.gif) is sourced from [Fukui City Zoo open data](https://github.com/code4fukui/lessergo-puyo/).*
 
-### Usage
+## Features
 
-_Decoding:_
+-   Parses GIF files into frame data with metadata.
+-   Decompresses LZW-encoded frame data.
+-   Handles interlaced GIFs.
+-   Provides canvas-ready `Uint8ClampedArray` pixel data for easy rendering.
+-   Correctly handles GIF disposal methods and transparency.
 
-This decoder uses **[js-binary-schema-parser][5]** to parse the gif files (you can examine the schema in the source). This means the gif file must firstly be converted into a `Uint8Array` buffer in order to decode it. Some examples:
+## Usage
+
+This library is distributed as an ES module and can be imported directly from a URL. No installation step is required.
+
+### Decoding a GIF
+
+To decode a GIF, fetch it as an `ArrayBuffer`, then use the `parseGIF` and `decompressFrames` functions.
 
 ```js
 import { parseGIF, decompressFrames } from 'https://code4fukui.github.io/gifuct-js/src/index.js';
 
-const buff = await (await fetch(gifURL)).arrayBuffer();
-const gif = parseGIF(buff);
-const frames = decompressFrames(gif, true)
-console.log(frames);
+// Fetch the GIF file
+const response = await fetch('path/to/your.gif');
+const buffer = await response.arrayBuffer();
+
+// Parse the GIF
+const gif = parseGIF(buffer);
+
+// Decompress the GIF frames
+const frames = decompressFrames(gif, true); // true to generate canvas-ready patches
 ```
 
-_Result:_
+### Rendering Frames
 
-The result of the `decompressFrames(gif, buildPatch)` function returns an array of all the GIF image frames, and their meta data. Here is a an example frame:
+The `frames` array contains all the data needed to render the animation. Each frame is a patch that should be drawn on top of the previous frame's output, respecting the `disposalType`.
+
+The recommended rendering approach is to use two canvases: one hidden canvas to compose the full GIF image and one visible canvas to display it.
 
 ```js
-{
-    // The color table lookup index for each pixel
-    pixels: [...],
-    // the dimensions of the gif frame (see disposal method)
-    dims: {
-        top: 0,
-        left: 10,
-        width: 100,
-        height: 50
-    },
-    // the time in milliseconds that this frame should be shown
-    delay: 50,
-    // the disposal method (see below)
-    disposalType: 1,
-    // an array of colors that the pixel data points to
-    colorTable: [...],
-    // An optional color index that represents transparency (see below)
-    transparentIndex: 33,
-    // Uint8ClampedArray color converted patch information for drawing
-    patch: [...]
- }
+const canvas = document.querySelector('#player');
+const ctx = canvas.getContext('2d');
+
+// Set canvas dimensions
+canvas.width = gif.lsd.width;
+canvas.height = gif.lsd.height;
+
+// Create a temporary canvas for compositing
+const tempCanvas = document.createElement('canvas');
+const tempCtx = tempCanvas.getContext('2d');
+tempCanvas.width = canvas.width;
+tempCanvas.height = canvas.height;
+
+let frameIndex = 0;
+
+function draw() {
+  const frame = frames[frameIndex];
+  const { dims, patch, disposalType } = frame;
+
+  // Method 2: Draw the new patch onto the temporary canvas,
+  // then draw the temporary canvas onto the main canvas.
+  if (disposalType === 2) {
+    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+  }
+
+  // Create an ImageData object from the patch
+  const imageData = tempCtx.createImageData(dims.width, dims.height);
+  imageData.data.set(patch);
+  
+  // Draw the patch onto the temporary canvas
+  tempCtx.putImageData(imageData, dims.left, dims.top);
+
+  // Copy the temporary canvas to the visible canvas
+  ctx.drawImage(tempCanvas, 0, 0);
+
+  // Schedule the next frame
+  frameIndex = (frameIndex + 1) % frames.length;
+  setTimeout(draw, frame.delay);
+}
+
+draw();
 ```
 
-_Automatic Patch Generation:_
+## API
 
-If the `buildPatch` param of the `dcompressFrames()` function is `true`, the parser will not only return the parsed and decompressed gif frames, but will also create canvas ready `Uint8ClampedArray` arrays of each gif frame image, so that they can easily be drawn using `ctx.putImageData()` for example. This requirement is common, however it was made optional because it makes assumptions about transparency. The [demo][4] makes use of this option.
+### Functions
 
-_Disposal Method:_
+#### `parseGIF(arrayBuffer)`
 
-The `pixel` data is stored as a list of indexes for each pixel. These each point to a value in the `colorTable` array, which contain the color that each pixel should be drawn. Each frame of the gif may not be the full size, but instead a patch that needs to be drawn over a particular location. The `disposalType` defines how that patch should be drawn over the gif canvas. In most cases, that value will be `1`, indicating that the gif frame should be simply drawn over the existing gif canvas without altering any pixels outside the frames patch dimensions. More can be read about this [here][6].
+-   **`arrayBuffer`**: `ArrayBuffer` | The raw GIF file data.
+-   **Returns**: `ParsedGif` | A structured object representing the parsed GIF file.
 
-_Transparency:_
+Parses the high-level structure of the GIF, including headers, color tables, and raw frame data. This function does not decompress the image data.
 
-If a `transparentIndex` is defined for a frame, it means that any pixel within the pixel data that matches this index should not be drawn. When drawing the patch using canvas, this means setting the alpha value for this pixel to `0`.
+#### `decompressFrames(parsedGif, buildImagePatches)`
 
-### Drawing the GIF
+-   **`parsedGif`**: `ParsedGif` | The object returned from `parseGIF`.
+-   **`buildImagePatches`**: `boolean` | If `true`, a `patch` property with a `Uint8ClampedArray` will be added to each frame object, ready for canvas rendering.
+-   **Returns**: `ParsedFrame[]` | An array of decompressed frame objects.
 
-Check out the **[demo][4]** for an example of how to draw/manipulate a gif using this library. We wanted the library to be drawing agnostic to allow users to do what they wish with the raw gif data, rather than impose a method that has to be altered. On this note however, we provide an easy interface for creating commonly used canvas pixel data for drawing ease.
+### Data Structures
 
-### Thanks to
+#### `ParsedFrame`
 
-We underestimated the convolutedness of the GIF format, so this library couldn't have been made without the help of:
+Each object in the array returned by `decompressFrames` has the following structure:
 
-- [Project: What's In A GIF - Bit by Byte][7] - An amazingly detailed blog by Matthew Flickinger
-- [jsgif][2]
-- The [*almost correct*] LZW decompression from [this neat gist][8]
+-   **`pixels`**: `number[]`
+    -   An array of color indices for the frame's patch.
+-   **`dims`**: `{ top: number, left: number, width: number, height: number }`
+    -   The position and dimensions of the image patch.
+-   **`delay`**: `number`
+    -   The time, in milliseconds, to display the frame.
+-   **`disposalType`**: `number`
+    -   The disposal method (1-3), which indicates how to treat the canvas before rendering the next frame.
+-   **`colorTable`**: `[r, g, b][]`
+    -   The color table used for this frame (either local or global).
+-   **`transparentIndex`**: `number`
+    -   The index in the color table that should be treated as transparent.
+-   **`patch`**: `Uint8ClampedArray` (optional)
+    -   A canvas-ready pixel array in `[R, G, B, A, ...]` format. Only present if `buildImagePatches` was `true`.
 
-### Who are we?
+## License
 
-[Matt Way][9] & [Nick Drewe][10]
-
-[Wethrift.com][11]
-
-[1]: https://www.producthunt.com/posts/ruffle
-[2]: http://slbkbs.org/jsgif/
-[3]: https://github.com/buzzfeed/libgif-js
-[4]: http://matt-way.github.io/gifuct-js/
-[5]: https://github.com/matt-way/jsBinarySchemaParser
-[6]: http://www.matthewflickinger.com/lab/whatsinagif/animation_and_transparency.asp
-[7]: http://www.matthewflickinger.com/lab/whatsinagif/index.html
-[8]: https://gist.github.com/devunwired/4479231
-[9]: https://twitter.com/_MattWay
-[10]: https://twitter.com/nickdrewe
-[11]: https://wethrift.com
+MIT License — see [LICENSE](LICENSE).
